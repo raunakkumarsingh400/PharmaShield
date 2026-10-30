@@ -1,0 +1,220 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <meta
+        name="theme-color"
+        content="#0f766e"
+    >
+
+    <title>
+        PharmaShield Registration
+    </title>
+
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" type="image/x-icon" href="/static/favicon/favicon.ico?v=4">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png?v=4">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png?v=4">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png?v=4">
+    <link rel="manifest" href="/static/favicon/site.webmanifest?v=4">
+    <meta name="theme-color" content="#0f766e">
+
+</head>
+
+
+<body class="auth">
+
+
+    <div class="auth-card">
+
+
+        <!-- =========================
+             LOGO
+        ========================== -->
+
+        <div class="logo">
+            🛡️ PharmaShield
+        </div>
+
+
+        <p class="muted">
+            Create your PharmaShield account
+        </p>
+
+
+        <h2>
+            Create Account 
+        </h2>
+
+
+        <!-- =========================
+             ERROR MESSAGE
+        ========================== -->
+
+        {% if message and not success %}
+
+            <div class="alert error">
+                {{ message }}
+            </div>
+
+        {% endif %}
+
+
+        <!-- =========================
+             REGISTRATION FORM
+        ========================== -->
+
+        <form method="post">
+
+            {% csrf_token %}
+
+
+            <!-- FULL NAME -->
+
+            <label>
+
+                Full Name
+
+                <input
+                    name="name"
+                    placeholder="Enter your full name"
+                    autocomplete="name"
+                    required
+                >
+
+            </label>
+
+
+            <!-- EMAIL -->
+
+            <label>
+
+                Email
+
+                <input
+                    name="email"
+                    type="email"
+                    placeholder="Enter your email address"
+                    autocomplete="email"
+                    required
+                >
+
+            </label>
+
+
+            <!-- MOBILE -->
+
+            <label>
+
+                Mobile Number
+
+                <input
+                    name="mobile"
+                    type="tel"
+                    placeholder="Enter your mobile number"
+                    autocomplete="tel"
+                    inputmode="numeric"
+                    required
+                >
+
+            </label>
+
+
+            <!-- PASSWORD -->
+
+            <label>
+
+                Password
+
+                <input
+                    name="password"
+                    type="password"
+                    placeholder="Create a password"
+                    minlength="8"
+                    autocomplete="new-password"
+                    required
+                >
+
+            </label>
+
+
+            <!-- CONFIRM PASSWORD -->
+
+            <label>
+
+                Confirm Password
+
+                <input
+                    name="confirm_password"
+                    type="password"
+                    placeholder="Confirm your password"
+                    minlength="8"
+                    autocomplete="new-password"
+                    required
+                >
+
+            </label>
+
+
+            <!-- REGISTER BUTTON -->
+
+            <button type="submit">
+                Create Account
+            </button>
+
+        </form>
+
+
+        <!-- =========================
+             LOGIN LINK
+        ========================== -->
+
+        <p class="center">
+
+            Already registered?
+
+            <a href="/">
+                Login here
+            </a>
+
+        </p>
+
+    </div>
+
+
+    <!-- =========================
+         SUCCESS REDIRECT
+    ========================== -->
+
+    {% if success and user_id %}
+
+        <script>
+
+            alert(
+                "Registration Successful! \n\n" +
+                "Your PharmaShield ID is: {{ user_id }}\n\n" +
+                "Please remember this ID for login.\n\n" +
+                "You will now be redirected to the Login page."
+            );
+
+
+            window.location.href =
+                "/?registered_id={{ user_id }}";
+
+        </script>
+
+    {% endif %}
+
+
+</body>
+
+</html>

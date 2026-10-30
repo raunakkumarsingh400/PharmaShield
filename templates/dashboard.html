@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Dashboard
+{% endblock %}
+
+{% block content %}
+
+<div class="welcome">
+    <b>
+        Welcome, {{ user.name }} 
+    </b>
+
+    <br>
+
+    <span>
+        PharmaShield ID: {{ user.user_id }}
+    </span>
+</div>
+
+
+<!-- =========================
+     STATISTICS
+========================== -->
+
+<div class="grid">
+
+    <div class="stat">
+         Medicine Records
+        <b>{{ stats.medicines }}</b>
+    </div>
+
+    <div class="stat">
+         Registered Users
+        <b>{{ stats.users }}</b>
+    </div>
+
+    <div class="stat">
+         Verification Scans
+        <b>{{ stats.scans }}</b>
+    </div>
+
+    <div class="stat">
+         Reports
+        <b>{{ stats.reports }}</b>
+    </div>
+
+</div>
+
+
+<!-- =========================
+     MEDICATION SAFETY
+========================== -->
+
+<div class="card">
+
+    <h2>
+        Medication Safety
+    </h2>
+
+    <p>
+        Check your medicine list for duplicate active ingredients
+        and known medication interactions.
+    </p>
+
+    <div class="grid">
+
+        <div class="stat">
+             My Medicines
+            <b>{{ stats.user_medicines|default:0 }}</b>
+        </div>
+
+        <div class="stat">
+             Duplicate Ingredients
+            <b>{{ stats.duplicate_ingredients|default:0 }}</b>
+        </div>
+
+        <div class="stat">
+             Interactions
+            <b>{{ stats.interactions|default:0 }}</b>
+        </div>
+
+        <div class="stat">
+             Allergy Alerts
+            <b>{{ stats.allergy_alerts|default:0 }}</b>
+        </div>
+
+        <div class="stat">
+             Dose Alerts
+            <b>{{ stats.dose_alerts|default:0 }}</b>
+        </div>
+
+    </div>
+
+    <a class="button" href="{% url 'my_medicines' %}">
+         Manage My Medicines
+    </a>
+
+    <a class="button" href="{% url 'medication_safety' %}">
+         Check Medication Safety
+    </a>
+
+</div>
+
+
+<!-- =========================
+     MEDICINE SEARCH
+========================== -->
+
+<div class="card">
+
+    <h2>
+         Search Medicine Database
+    </h2>
+
+    <p>
+        Search medicines by brand name or active ingredient
+        from the PharmaShield medicine database.
+    </p>
+
+    <a class="button" href="{% url 'medicine_search' %}">
+         Search Medicines
+    </a>
+
+</div>
+
+
+<!-- =========================
+     VERIFICATION
+========================== -->
+
+<div class="card">
+
+    <h2>
+         Verify a Medicine
+    </h2>
+
+    <p>
+        Check a QR code, barcode, or batch number against
+        the PharmaShield medicine database.
+    </p>
+
+    <a class="button" href="{% url 'verify' %}">
+         Start Verification
+    </a>
+
+</div>
+
+
+<!-- =========================
+     HISTORY & REPORTS
+========================== -->
+
+<div class="card">
+
+    <h2>
+         Reports & History
+    </h2>
+
+    <p>
+        View previous medicine verification records
+        and submit suspicious medicine reports.
+    </p>
+
+    <a class="button" href="{% url 'history' %}">
+     View History
+    </a>
+
+    <a class="button" href="{% url 'report' %}">
+         Report Medicine
+    </a>
+
+</div>
+
+{% endblock %}

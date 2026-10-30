@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+    Scan History
+{% endblock %}
+
+
+{% block content %}
+
+    <!-- =========================
+         SCAN HISTORY CARD
+    ========================== -->
+
+    <div class="card">
+
+        <h2>
+             My Scan History
+        </h2>
+
+        <p class="muted">
+            View your previous medicine verification scans.
+        </p>
+
+
+        {% for s in scans %}
+
+            <div class="history">
+
+                <div>
+
+                    <b>
+                         {{ s.input_code }}
+                    </b>
+
+                    <small>
+                        {{ s.created_at }}
+                    </small>
+
+                </div>
+
+
+                <strong>
+                    {{ s.result }}
+                </strong>
+
+            </div>
+
+
+        {% empty %}
+
+            <p class="muted">
+                 No scans yet.
+            </p>
+
+        {% endfor %}
+
+    </div>
+
+{% endblock %}

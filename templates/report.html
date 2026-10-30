@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+    Report
+{% endblock %}
+
+
+{% block content %}
+
+    <!-- =========================
+         REPORT CARD
+    ========================== -->
+
+    <div class="card">
+
+        <h2>
+             Report Suspicious Medicine
+        </h2>
+
+        <p class="muted">
+            Help us identify suspicious or potentially
+            counterfeit medicines by submitting the details below.
+        </p>
+
+
+        <!-- =========================
+             SUCCESS MESSAGE
+        ========================== -->
+
+        {% if message %}
+
+            <div class="alert success">
+                 {{ message }}
+            </div>
+
+        {% endif %}
+
+
+        <!-- =========================
+             REPORT FORM
+        ========================== -->
+
+        <form method="post">
+
+            {% csrf_token %}
+
+
+            <!-- MEDICINE CODE -->
+
+            <label>
+
+                Medicine QR / Barcode / Batch Code
+
+                <input
+                    name="code"
+                    placeholder="Enter medicine code"
+                    required
+                >
+
+            </label>
+
+
+            <!-- REASON -->
+
+            <label>
+
+                Reason for Report
+
+                <textarea
+                    name="reason"
+                    rows="6"
+                    placeholder="Describe why you think this medicine is suspicious..."
+                    required
+                ></textarea>
+
+            </label>
+
+
+            <!-- SUBMIT -->
+
+            <button type="submit">
+                 Submit Report
+            </button>
+
+        </form>
+
+    </div>
+
+{% endblock %}

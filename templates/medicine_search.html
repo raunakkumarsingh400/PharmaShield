@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Search Medicines
+{% endblock %}
+
+{% block content %}
+
+<div class="welcome">
+    <b>
+         Search Medicine Database
+    </b>
+
+    <br>
+
+    <span>
+        Search medicines by brand name or active ingredient.
+    </span>
+</div>
+
+
+<!-- =========================
+     SEARCH FORM
+========================== -->
+
+<div class="card">
+
+    <h2> Find a Medicine</h2>
+
+    <form method="get" action="{% url 'medicine_search' %}">
+        <label>
+            Medicine or Active Ingredient
+            <input
+                type="text"
+                name="q"
+                value="{{ query }}"
+                placeholder="Example: Augmentin or Amoxycillin"
+                required
+                autofocus
+            >
+        </label>
+
+        <button type="submit">
+             Search
+        </button>
+    </form>
+
+</div>
+
+
+<!-- =========================
+     SEARCH RESULTS
+========================== -->
+
+{% if query %}
+
+<div class="card">
+
+    <h2> Search Results</h2>
+
+    <p>
+        Results for: <b>{{ query }}</b>
+    </p>
+
+    {% if medicines %}
+
+        {% for medicine in medicines %}
+
+        <div class="medicine-item">
+
+            <h3>
+                
+                {{ medicine.brand_name|default:medicine.medicine_name|default:"Unknown Medicine" }}
+            </h3>
+
+            {% if medicine.product_id %}
+            <p>
+                <b>Product ID:</b> {{ medicine.product_id }}
+            </p>
+            {% endif %}
+
+            {% if medicine.primary_ingredient %}
+            <p>
+                <b>Active Ingredient:</b>
+                {{ medicine.primary_ingredient }}
+            </p>
+            {% endif %}
+
+            {% if medicine.primary_strength %}
+            <p>
+                <b>Strength:</b> {{ medicine.primary_strength }}
+            </p>
+            {% elif medicine.strength %}
+            <p>
+                <b>Strength:</b> {{ medicine.strength }}
+            </p>
+            {% endif %}
+
+            {% if medicine.dosage_form %}
+            <p>
+                <b>Dosage Form:</b> {{ medicine.dosage_form }}
+            </p>
+            {% endif %}
+
+            {% if medicine.manufacturer %}
+            <p>
+                <b>Manufacturer:</b> {{ medicine.manufacturer }}
+            </p>
+            {% endif %}
+
+            {% if medicine.therapeutic_class %}
+            <p>
+                <b>Therapeutic Class:</b>
+                {{ medicine.therapeutic_class }}
+            </p>
+            {% endif %}
+
+            {% if medicine.active_ingredients %}
+            <p>
+                <b>Active Ingredients:</b>
+                {{ medicine.active_ingredients|join:", " }}
+            </p>
+            {% endif %}
+
+            <form method="post" action="{% url 'my_medicines' %}">
+                {% csrf_token %}
+
+                <input type="hidden" name="action" value="add">
+                <input type="hidden" name="product_id" value="{{ medicine.product_id }}">
+                <input type="hidden" name="medicine_name" value="{{ medicine.brand_name|default:medicine.medicine_name }}">
+
+                <button type="submit">
+                     Add to My Medicines
+                </button>
+            </form>
+
+            {% if medicine.price_inr %}
+            <p>
+                <b>Price:</b> ₹{{ medicine.price_inr }}
+                {% if medicine.is_discontinued %}<span class="muted">(discontinued)</span>{% endif %}
+            </p>
+            {% endif %}
+
+            {% if medicine.product_id and medicine.ingredient_key %}
+            <a class="button" href="{% url 'alternatives' medicine.product_id %}">
+                 Cheaper alternatives
+            </a>
+            {% endif %}
+
+        </div>
+
+        {% endfor %}
+
+    {% else %}
+
+        <div class="alert error">
+             No medicines found.
+        </div>
+
+        <p>
+            Try another medicine name or active ingredient.
+        </p>
+
+    {% endif %}
+
+</div>
+
+{% endif %}
+
+
+<div class="card">
+    <a class="button" href="{% url 'my_medicines' %}">
+         My Medicines
+    </a>
+
+    <a class="button" href="{% url 'medication_safety' %}">
+         Medication Safety
+    </a>
+
+    <a class="button" href="{% url 'dashboard' %}">
+        ← Back to Dashboard
+    </a>
+</div>
+
+{% endblock %}

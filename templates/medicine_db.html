@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+    Medicine Database
+{% endblock %}
+
+
+{% block content %}
+
+    <!-- =========================
+         MEDICINE DATABASE CARD
+    ========================== -->
+
+    <div class="card">
+
+        <h2>
+             Add / Update Medicine
+        </h2>
+
+        <p class="muted">
+            Add medicine information to the PharmaShield
+            verification database.
+        </p>
+
+
+        <!-- =========================
+             SUCCESS MESSAGE
+        ========================== -->
+
+        {% if message %}
+
+            <div class="alert success">
+                 {{ message }}
+            </div>
+
+        {% endif %}
+
+
+        <!-- =========================
+             MEDICINE FORM
+        ========================== -->
+
+        <form method="post">
+
+            {% csrf_token %}
+
+
+            <div class="form-grid">
+
+
+                <!-- MEDICINE NAME -->
+
+                <label>
+
+                    Medicine Name
+
+                    <input
+                        name="medicine_name"
+                        placeholder="e.g. Paracetamol"
+                        required
+                    >
+
+                </label>
+
+
+                <!-- GENERIC NAME -->
+
+                <label>
+
+                    Generic / Salt
+
+                    <input
+                        name="generic_name"
+                        placeholder="e.g. Paracetamol"
+                    >
+
+                </label>
+
+
+                <!-- STRENGTH -->
+
+                <label>
+
+                    Strength
+
+                    <input
+                        name="strength"
+                        placeholder="e.g. 500 mg"
+                    >
+
+                </label>
+
+
+                <!-- DOSAGE FORM -->
+
+                <label>
+
+                    Dosage Form
+
+                    <input
+                        name="dosage_form"
+                        placeholder="e.g. Tablet / Syrup"
+                    >
+
+                </label>
+
+
+                <!-- MANUFACTURER -->
+
+                <label>
+
+                    Manufacturer
+
+                    <input
+                        name="manufacturer"
+                        placeholder="Company name"
+                        required
+                    >
+
+                </label>
+
+
+                <!-- BATCH NUMBER -->
+
+                <label>
+
+                    Batch Number
+
+                    <input
+                        name="batch_number"
+                        placeholder="Enter batch number"
+                        required
+                    >
+
+                </label>
+
+
+                <!-- VERIFICATION CODE -->
+
+                <label>
+
+                    QR / Verification Code
+
+                    <input
+                        name="verification_code"
+                        placeholder="Enter verification code"
+                    >
+
+                </label>
+
+
+                <!-- BARCODE -->
+
+                <label>
+
+                    Barcode
+
+                    <input
+                        name="barcode"
+                        placeholder="Enter barcode"
+                    >
+
+                </label>
+
+
+                <!-- MANUFACTURING DATE -->
+
+                <label>
+
+                    Manufacturing Date
+
+                    <input
+                        name="manufacturing_date"
+                        type="date"
+                    >
+
+                </label>
+
+
+                <!-- EXPIRY DATE -->
+
+                <label>
+
+                    Expiry Date
+
+                    <input
+                        name="expiry_date"
+                        type="date"
+                    >
+
+                </label>
+
+
+                <!-- MRP -->
+
+                <label>
+
+                    MRP
+
+                    <input
+                        name="mrp"
+                        type="number"
+                        step="0.01"
+                        placeholder="₹ 0.00"
+                    >
+
+                </label>
+
+
+                <!-- SOURCE -->
+
+                <label>
+
+                    Source
+
+                    <input
+                        name="source"
+                        placeholder="e.g. Manufacturer"
+                    >
+
+                </label>
+
+
+                <!-- SOURCE URL -->
+
+                <label>
+
+                    Source URL
+
+                    <input
+                        name="source_url"
+                        type="url"
+                        placeholder="https://example.com"
+                    >
+
+                </label>
+
+
+            </div>
+
+
+            <!-- SAVE BUTTON -->
+
+            <button type="submit">
+                 Save Medicine Record
+            </button>
+
+        </form>
+
+    </div>
+
+{% endblock %}

@@ -1,0 +1,153 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="theme-color" content="#0f766e">
+
+    <title>
+        PharmaShield Login
+    </title>
+
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" type="image/x-icon" href="/static/favicon/favicon.ico?v=4">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png?v=4">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png?v=4">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png?v=4">
+    <link rel="manifest" href="/static/favicon/site.webmanifest?v=4">
+    <meta name="theme-color" content="#0f766e">
+
+</head>
+
+
+<body class="auth">
+
+
+    <div class="auth-card">
+
+
+        <!-- =========================
+             LOGO
+        ========================== -->
+
+        <div class="logo">
+            🛡️ PharmaShield
+        </div>
+
+
+        <p class="muted">
+            Medicine verification and safety platform
+        </p>
+
+
+        <!-- =========================
+             LOGIN TITLE
+        ========================== -->
+
+        <h2>
+            Welcome Back 
+        </h2>
+
+
+        <!-- =========================
+             MESSAGE
+        ========================== -->
+
+        {% if message %}
+
+        <div class="alert
+                {% if registered_id %}
+                    success
+                {% else %}
+                    error
+                {% endif %}">
+            {{ message }}
+        </div>
+
+        {% endif %}
+
+
+        <!-- =========================
+             LOGIN FORM
+        ========================== -->
+
+        <form method="post">
+
+            {% csrf_token %}
+
+
+            <!-- PHARMASHIELD ID -->
+
+            <label>
+
+                PharmaShield ID
+
+                <input name="user_id" value="{{ registered_id }}" placeholder="Enter your PharmaShield ID"
+                    autocomplete="username" required autofocus>
+
+            </label>
+
+
+            <!-- PASSWORD -->
+
+            <label>
+
+                Password
+
+                <input name="password" type="password" placeholder="Enter your password" autocomplete="current-password"
+                    required>
+
+            </label>
+
+
+            <!-- LOGIN BUTTON -->
+
+            <button type="submit">
+                Login
+            </button>
+            <div class="forgot-password">
+                <a href="{% url 'forgot_password' %}">
+                    Forgot Password?
+                </a>
+            </div>
+
+        </form>
+
+
+        <!-- =========================
+             REGISTER LINK
+        ========================== -->
+
+        <p class="center">
+
+            New user?
+
+            <a href="/register/">
+                Create an account
+            </a>
+
+        </p>
+
+
+        <!-- =========================
+             DATABASE STATUS
+        ========================== -->
+
+        <p class="db">
+
+            {{ db_online|yesno:"● MongoDB Connected,● Database Offline" }}
+
+        </p>
+
+
+    </div>
+
+
+</body>
+
+</html>

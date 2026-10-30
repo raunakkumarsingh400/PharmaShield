@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Admin Dashboard
+{% endblock %}
+
+{% block content %}
+
+<div class="welcome">
+    <b>Admin Dashboard</b>
+    <br>
+    <span>Scans, results and suspicious-medicine reports at a glance.</span>
+</div>
+
+{% if not data %}
+
+<div class="card">
+    <div class="alert error">MongoDB is offline, so no data is available.</div>
+</div>
+
+{% else %}
+
+<!-- TOTALS -->
+<div class="card">
+    <div class="grid">
+        <div class="stat">Medicines <b>{{ data.totals.medicines }}</b></div>
+        <div class="stat">Users <b>{{ data.totals.users }}</b></div>
+        <div class="stat">Scans (all time) <b>{{ data.totals.scans }}</b></div>
+        <div class="stat">Scans today <b>{{ data.totals.scans_today }}</b></div>
+        <div class="stat">Reports <b>{{ data.totals.reports }}</b></div>
+        <div class="stat">Flagged codes <b>{{ data.totals.flagged }}</b></div>
+    </div>
+</div>
+
+<!-- SCANS PER DAY -->
+<div class="card">
+    <h2>Scans in the last 14 days</h2>
+
+    <div class="bars" role="img" aria-label="Scans per day">
+        {% for day in data.days %}
+        <div class="bar-col" title="{{ day.date }}: {{ day.n }} scan(s)">
+            <span class="bar-val">{{ day.n }}</span>
+            <div class="bar-track">
+                <div class="bar" style="height: {{ day.pct }}%;"></div>
+            </div>
+            <span class="bar-label">{{ day.label }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- RESULT BREAKDOWN -->
+<div class="card">
+    <h2>Verification results</h2>
+
+    {% for row in data.results %}
+    <div class="hbar-row">
+        <span class="hbar-name">{{ row.label }}</span>
+        <div class="hbar-track">
+            <div class="hbar" style="width: {{ row.pct }}%; background: {{ row.colour }};"></div>
+        </div>
+        <span class="hbar-num">{{ row.n }} ({{ row.pct }}%)</span>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- TOP REPORTED CODES -->
+<div class="card">
+    <h2>Most reported codes</h2>
+    <p class="muted">A code is flagged once it has {{ data.threshold }} or more reports.</p>
+
+    {% if data.top_reports %}
+        {% for r in data.top_reports %}
+        <div class="medicine-item">
+            <h3>
+                {% if r.flagged %}{% else %}⚑{% endif %}
+                {{ r.code }}
+                <span class="muted">— {{ r.count }} report{{ r.count|pluralize }}</span>
+            </h3>
+            {% if r.medicine %}<p><b>Medicine:</b> {{ r.medicine }}</p>
+            {% else %}<p class="muted">Code not found in the medicine database.</p>{% endif %}
+            {% if r.reason %}<p><b>Latest reason:</b> {{ r.reason }}</p>{% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>No reports yet.</p>
+    {% endif %}
+</div>
+
+<!-- RECENT -->
+<div class="card">
+    <h2>Recent scans</h2>
+
+    {% for s in data.recent_scans %}
+    <p>
+        <b>{{ s.input_code }}</b> — {{ s.result }}
+        <span class="muted">· {{ s.user_email }} · {{ s.created_at|date:"d M, H:i" }} UTC</span>
+    </p>
+    {% empty %}
+    <p>No scans yet.</p>
+    {% endfor %}
+</div>
+
+<div class="card">
+    <h2>Recent reports</h2>
+
+    {% for r in data.recent_reports %}
+    <p>
+        <b>{{ r.code }}</b> — {{ r.reason }}
+        <span class="muted">· {{ r.user_email }} · {{ r.created_at|date:"d M, H:i" }} UTC</span>
+    </p>
+    {% empty %}
+    <p>No reports yet.</p>
+    {% endfor %}
+
+    <a class="button" href="{% url 'admin_qr' %}">QR Generator</a>
+    <a class="button" href="{% url 'medicine_db' %}">Medicine DB</a>
+</div>
+
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}
+    QR Generator
+{% endblock %}
+
+{% block content %}
+
+<div class="welcome no-print">
+    <b>Batch QR Generator</b>
+    <br>
+    <span>
+        Each QR holds the batch's QR code (or verification code / batch number).
+        Scanning it on the Verify page finds the medicine.
+    </span>
+</div>
+
+<div class="card no-print">
+
+    <form method="get" class="qr-search">
+        <input
+            type="text"
+            name="q"
+            value="{{ query }}"
+            placeholder="Search by medicine name, batch number or code"
+        >
+        <button type="submit">Search</button>
+    </form>
+
+    <p class="muted">
+        {{ total }} batch{{ total|pluralize:"es" }} found.
+        Use <b>Print / Save as PDF</b> to print the whole sheet.
+    </p>
+
+    <button type="button" onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="card no-print">
+    <h2>QR for any text</h2>
+
+    <form method="get" class="qr-search">
+        <input type="text" name="custom" value="{{ custom }}" maxlength="106"
+               placeholder="Type a code or text (max 106 characters)">
+        <button type="submit">Make QR</button>
+    </form>
+
+    {% if custom %}
+    <div class="qr-card" style="max-width: 220px; margin-top: 14px;">
+        <img src="{% url 'qr_svg' %}?data={{ custom|urlencode }}" alt="QR code for {{ custom }}">
+        <div class="qr-code">{{ custom }}</div>
+        <a class="button no-print" href="{% url 'qr_svg' %}?data={{ custom|urlencode }}&download=1">⬇ Download SVG</a>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card">
+
+    {% if batches %}
+    <div class="qr-grid">
+        {% for item in batches %}
+        <div class="qr-card">
+            <img
+                src="{% url 'qr_svg' %}?data={{ item.qr_payload|urlencode }}"
+                alt="QR code {{ item.qr_payload }}"
+                loading="lazy"
+            >
+            <div class="qr-name">{{ item.brand_name|default:item.medicine_name }}</div>
+            <div class="qr-code">{{ item.qr_payload }}</div>
+            <div class="qr-meta">
+                Batch {{ item.batch_number }}{% if item.expiry_date %} · Exp {{ item.expiry_date|slice:":7" }}{% endif %}
+            </div>
+            <a class="button no-print"
+               href="{% url 'qr_svg' %}?data={{ item.qr_payload|urlencode }}&download=1">⬇ SVG</a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="no-print" style="margin-top: 16px;">
+        {% if has_prev %}
+            <a class="button" href="?q={{ query|urlencode }}&page={{ page|add:'-1' }}">← Previous</a>
+        {% endif %}
+        {% if has_next %}
+            <a class="button" href="?q={{ query|urlencode }}&page={{ page|add:'1' }}">Next →</a>
+        {% endif %}
+    </div>
+
+    {% else %}
+        <p> No batches with a batch number were found. Import the demo data or add medicines in the Medicine DB.</p>
+    {% endif %}
+
+</div>
+
+{% endblock %}

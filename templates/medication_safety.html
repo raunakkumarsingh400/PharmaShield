@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Medication Safety
+{% endblock %}
+
+{% block content %}
+
+<div class="welcome">
+    <b> Medication Safety Check</b>
+    <br>
+    <span>
+        Review your medicines for allergies, dose limits, duplicate
+        ingredients and known interactions.
+    </span>
+</div>
+
+
+<!-- STATUS -->
+<div class="card">
+
+    {% if status == "DANGER" %}
+        <div class="alert error">
+             Important: serious safety issues were found. Please talk to your
+            doctor or pharmacist before taking these medicines together.
+        </div>
+    {% elif status == "ATTENTION_REQUIRED" %}
+        <div class="alert error">
+             Attention required: possible medication safety issues were found.
+        </div>
+    {% else %}
+        <div class="alert success">
+             No known issues were found in your current medicine list.
+        </div>
+    {% endif %}
+
+    {% if unrecognised %}
+        <div class="alert error">
+            ℹ Not found in the database, so they could not be checked:
+            <b>{{ unrecognised|join:", " }}</b>. Search and add them from the
+            database for accurate results.
+        </div>
+    {% endif %}
+
+    <div class="grid">
+        <div class="stat">Medicines <b>{{ medicines|length }}</b></div>
+        <div class="stat"> Allergy Alerts <b>{{ allergy_count }}</b></div>
+        <div class="stat"> Dose Alerts <b>{{ dose_count }}</b></div>
+        <div class="stat"> Duplicate Ingredients <b>{{ duplicate_count }}</b></div>
+        <div class="stat"> Interactions <b>{{ interaction_count }}</b></div>
+    </div>
+
+</div>
+
+
+<!-- ALLERGIES -->
+<div class="card">
+    <h2> Allergy Alerts</h2>
+
+    {% if allergy_alerts %}
+        {% for a in allergy_alerts %}
+        <div class="medicine-item">
+            <h3> {{ a.ingredient|title }} — matches your allergy: {{ a.allergy }}</h3>
+            <p><b>Found in:</b> {{ a.medicines|join:", " }}</p>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p> No medicine in your list matches your saved allergies.</p>
+    {% endif %}
+
+    <a class="button" href="{% url 'profile' %}">👤 Edit my allergies</a>
+</div>
+
+
+<!-- DOSE -->
+<div class="card">
+    <h2> Daily Dose Check</h2>
+
+    {% if dose_alerts %}
+        {% for d in dose_alerts %}
+        <div class="medicine-item">
+            <h3> {{ d.ingredient|title }}: about {{ d.daily_mg }} mg per day</h3>
+            <p>
+                Typical adult maximum is about {{ d.limit_mg }} mg per day.
+                Combined from: {{ d.medicines|join:", " }}.
+            </p>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>
+             No daily limit exceeded, based on the dose and frequency you
+            entered. (If no dose is entered, one tablet per intake is assumed;
+            medicines without a frequency are skipped.)
+        </p>
+    {% endif %}
+</div>
+
+
+<!-- DUPLICATES -->
+<div class="card">
+    <h2> Duplicate Active Ingredients</h2>
+
+    {% if duplicate_ingredients %}
+        {% for duplicate in duplicate_ingredients %}
+        <div class="medicine-item">
+            <h3> {{ duplicate.ingredient|title }}</h3>
+            <p>Found in:</p>
+            <ul>
+                {% for medicine in duplicate.medicines %}
+                <li>{{ medicine }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p> No duplicate active ingredients detected.</p>
+    {% endif %}
+</div>
+
+
+<!-- INTERACTIONS -->
+<div class="card">
+    <h2> Medication Interactions</h2>
+
+    {% if interactions %}
+        {% for interaction in interactions %}
+        <div class="medicine-item">
+            <h3>
+                {% if interaction.severity == "major" %}{% else %}{% endif %}
+                {{ interaction.drug_a|title }} ↔ {{ interaction.drug_b|title }}
+            </h3>
+
+            {% if interaction.severity %}
+            <p><b>Severity:</b> {{ interaction.severity|title }}</p>
+            {% endif %}
+
+            {% if interaction.description %}
+            <p><b>Details:</b> {{ interaction.description }}</p>
+            {% endif %}
+
+            {% if interaction.medicines %}
+            <p><b>Your medicines:</b> {{ interaction.medicines|join:", " }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <p> No known medication interactions detected.</p>
+    {% endif %}
+</div>
+
+
+<!-- CURRENT MEDICINES -->
+<div class="card">
+    <h2>Current Medicine List</h2>
+
+    {% if medicines %}
+        {% for medicine in medicines %}
+        <div class="medicine-item">
+            <h3>{{ medicine.medicine_name|default:medicine.brand_name }}</h3>
+
+            {% if medicine.active_ingredients %}
+            <p><b>Active Ingredients:</b> {{ medicine.active_ingredients|join:", " }}</p>
+            {% endif %}
+
+            {% if medicine.dose or medicine.frequency %}
+            <p><b>Dose:</b> {{ medicine.dose|default:"—" }} · {{ medicine.frequency|default:"—" }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+        <p> No medicines have been added yet.</p>
+    {% endif %}
+</div>
+
+
+<div class="card">
+    <p class="muted">
+         PharmaShield is a decision-support tool, not medical advice. The
+        checks cover a limited set of well-known risks and cannot replace a
+        doctor or pharmacist. Never start, stop or change a medicine because
+        of this page alone.
+    </p>
+
+    <a class="button" href="{% url 'safety_report' %}"> Download PDF Report</a>
+    <a class="button" href="{% url 'my_medicines' %}"> Manage My Medicines</a>
+    <a class="button" href="{% url 'medicine_search' %}"> Search Medicines</a>
+    <a class="button" href="{% url 'dashboard' %}">← Back to Dashboard</a>
+</div>
+
+{% endblock %}

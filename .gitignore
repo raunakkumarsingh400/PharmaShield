@@ -1,0 +1,21 @@
+# Virtual Environment
+pharma_ai/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Local databases
+*.sqlite3
+
+# Static build output
+staticfiles/
+
+# Environment / Secrets
+.env
+
+# Editors / OS
+.vscode/
+Thumbs.db
+.DS_Store

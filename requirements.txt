@@ -1,0 +1,9 @@
+# Python 3.12+  -> latest Django 6.x (6.1 at the time of writing)
+# Python 3.10/3.11 -> Django 6 does not support these, so pip falls back to 5.2 LTS
+Django>=6.0,<6.2; python_version >= "3.12"
+Django>=5.2,<6.0; python_version < "3.12"
+pymongo==4.17.0
+gunicorn
+whitenoise>=6.11,<7
+openpyxl
+reportlab

@@ -1,0 +1,644 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+    Verify Medicine
+{% endblock %}
+
+
+{% block content %}
+
+    <!-- =========================
+         VERIFICATION CARD
+    ========================== -->
+
+    <div class="card">
+
+        <h2>
+             Medicine Verification
+        </h2>
+
+        <p class="muted">
+            Scan a medicine QR code or manually enter
+            a QR code, barcode, or batch number.
+        </p>
+
+
+        <!-- =========================
+             QR SCANNER
+        ========================== -->
+
+        <div class="scanner-section">
+
+            <h3>
+                 Scan with Camera
+            </h3>
+
+            <p class="muted">
+                Hold the QR about 15-25 cm from the camera, flat and fully
+                inside the frame. It is detected and verified automatically.
+            </p>
+
+            <div class="scan-actions">
+
+                <button type="button" id="startScanner" class="button">
+                     Start QR Scanner
+                </button>
+
+                <button
+                    type="button"
+                    id="stopScanner"
+                    class="button"
+                    style="display: none;"
+                >
+                     Stop Camera
+                </button>
+
+                <label class="button" for="qrFile" id="uploadLabel">
+                     Upload QR Image
+                </label>
+
+                <input
+                    type="file"
+                    id="qrFile"
+                    accept="image/*"
+                    style="display: none;"
+                >
+
+            </div>
+
+            <!-- CAMERA VIEW WITH GOOGLE-STYLE OVERLAY -->
+
+            <div class="scan-box" id="scanBox" style="display: none;">
+
+                <video id="scanVideo" playsinline muted autoplay></video>
+
+                <div class="scan-overlay">
+                    <div class="scan-frame">
+                        <span class="scan-corner tl"></span>
+                        <span class="scan-corner tr"></span>
+                        <span class="scan-corner br"></span>
+                        <span class="scan-corner bl"></span>
+                        <span class="scan-line"></span>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="scan-tools" id="scanTools" style="display: none;">
+
+                <button type="button" id="torchBtn" class="button" style="display: none;">
+                     Torch
+                </button>
+
+                <label id="zoomWrap" style="display: none;">
+                     Zoom
+                    <input type="range" id="zoomRange" min="1" max="3" step="0.1" value="1">
+                </label>
+
+            </div>
+
+            <p id="scanMessage" class="scan-hint" style="display: none;"></p>
+
+            <p class="muted" style="font-size: 13px;">
+                Camera works only on <b>https://</b> or <b>localhost</b>.
+                No camera? Upload a photo of the QR or type the code below.
+            </p>
+
+        </div>
+
+
+        <hr>
+
+
+        <!-- =========================
+             MANUAL VERIFICATION
+        ========================== -->
+
+        <h3>
+             Manual Verification
+        </h3>
+
+        <p class="muted">
+            Don't have a camera? Enter the medicine code manually.
+        </p>
+
+
+        <form method="post" id="verifyForm">
+
+            {% csrf_token %}
+
+
+            <label>
+
+                QR / Barcode / Batch Number
+
+                <input
+                    id="code"
+                    name="code"
+                    required
+                    autofocus
+                    placeholder="Enter or scan medicine code"
+                    value="{{ code|default:'' }}"
+                >
+
+            </label>
+
+
+            <button type="submit">
+                 Verify Medicine
+            </button>
+
+        </form>
+
+
+        <!-- =========================
+             ERROR MESSAGE
+        ========================== -->
+
+        {% if message %}
+
+            <div class="alert error">
+                 {{ message }}
+            </div>
+
+        {% endif %}
+
+
+        <!-- =========================
+             VERIFICATION RESULT
+        ========================== -->
+
+        {% if result %}
+
+            <div
+                class="
+                    result
+                    {% if result.result == 'VERIFIED_RECORD' %}
+                        verified
+                    {% else %}
+                        warning
+                    {% endif %}
+                "
+            >
+
+                {% if result.result == 'VERIFIED_RECORD' %}
+
+                    <h2>
+                         Medicine Verified
+                    </h2>
+
+                {% elif result.result == 'EXPIRED' %}
+
+                    <h2>
+                         Medicine Expired
+                    </h2>
+
+                {% elif result.result == 'REPORTED' %}
+
+                    <h2>
+                         Flagged by Users
+                    </h2>
+
+                {% else %}
+
+                    <h2>
+                         Verification Warning
+                    </h2>
+
+                {% endif %}
+
+
+                <p>
+                    {{ result.message }}
+                </p>
+
+                {% for w in result.warnings %}
+                    <p><b> {{ w }}</b></p>
+                {% endfor %}
+
+
+                <!-- MEDICINE DETAILS -->
+
+                {% for k, v in result.medicine.items %}
+
+                    {% if v %}
+
+                        <p>
+
+                            <b>
+                                {{ k|title }}:
+                            </b>
+
+                            {{ v }}
+
+                        </p>
+
+                    {% endif %}
+
+                {% endfor %}
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- =================================================
+         HTML5 QR CODE LIBRARY
+    ================================================== -->
+
+    <!-- jsQR: pure-JavaScript fallback decoder (used when the browser has no native QR detector) -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
+    <script>
+    (function () {
+
+        var video = document.getElementById("scanVideo");
+        var scanBox = document.getElementById("scanBox");
+        var startBtn = document.getElementById("startScanner");
+        var stopBtn = document.getElementById("stopScanner");
+        var tools = document.getElementById("scanTools");
+        var torchBtn = document.getElementById("torchBtn");
+        var zoomWrap = document.getElementById("zoomWrap");
+        var zoomRange = document.getElementById("zoomRange");
+        var msg = document.getElementById("scanMessage");
+        var codeInput = document.getElementById("code");
+        var form = document.getElementById("verifyForm");
+        var fileInput = document.getElementById("qrFile");
+
+        var canvas = document.createElement("canvas");
+        var ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+        var stream = null, track = null, detector = null;
+        var running = false, busy = false, frameNo = 0, lastTick = 0;
+        var torchOn = false, hintTimer = null;
+
+        var TICK_MS = 60;          /* about 16 decode attempts per second */
+        var MAX_SIDE = 720;        /* downscaled whole-frame scan */
+
+        function say(text) {
+            msg.textContent = text;
+            msg.style.display = "block";
+        }
+
+        /* QR may hold a plain code, a URL like ...?code=XXXX, or JSON {"code": "..."} */
+        function extractCode(text) {
+            text = (text || "").trim();
+
+            try {
+                var url = new URL(text);
+                var c = url.searchParams.get("code");
+                if (c) { return c.trim(); }
+            } catch (e) { /* not a URL */ }
+
+            try {
+                var obj = JSON.parse(text);
+                if (obj && obj.code) { return String(obj.code).trim(); }
+            } catch (e) { /* not JSON */ }
+
+            return text;
+        }
+
+        function beep() {
+            try {
+                var Ctx = window.AudioContext || window.webkitAudioContext;
+                var ac = new Ctx();
+                var osc = ac.createOscillator();
+                var gain = ac.createGain();
+                osc.frequency.value = 880;
+                gain.gain.value = 0.15;
+                osc.connect(gain);
+                gain.connect(ac.destination);
+                osc.start();
+                setTimeout(function () { osc.stop(); ac.close(); }, 130);
+            } catch (e) { /* sound is optional */ }
+        }
+
+        function finish(decodedText) {
+            var code = extractCode(decodedText);
+
+            if (!code) { say("❌ Empty QR code. Try again."); return; }
+
+            codeInput.value = code;
+            scanBox.classList.add("success");
+            say(" QR scanned: " + code);
+            beep();
+
+            if (navigator.vibrate) { navigator.vibrate(120); }
+
+            stopCamera(true);
+
+            setTimeout(function () {
+                if (form.requestSubmit) { form.requestSubmit(); } else { form.submit(); }
+            }, 600);
+        }
+
+        /* ---------- decoding ---------- */
+
+        function pickDetector() {
+            if (!("BarcodeDetector" in window)) { return Promise.resolve(null); }
+
+            return BarcodeDetector.getSupportedFormats().then(function (formats) {
+                return formats.indexOf("qr_code") !== -1
+                    ? new BarcodeDetector({ formats: ["qr_code"] })
+                    : null;
+            }).catch(function () { return null; });
+        }
+
+        function runJsQr(sx, sy, sw, sh, maxSide, invert) {
+            if (typeof jsQR === "undefined") { return null; }
+
+            var scale = Math.min(1, maxSide / Math.max(sw, sh));
+            var w = Math.max(1, Math.round(sw * scale));
+            var h = Math.max(1, Math.round(sh * scale));
+
+            canvas.width = w;
+            canvas.height = h;
+            ctx.drawImage(video, sx, sy, sw, sh, 0, 0, w, h);
+
+            var img = ctx.getImageData(0, 0, w, h);
+            var hit = jsQR(img.data, w, h, {
+                inversionAttempts: invert ? "attemptBoth" : "dontInvert"
+            });
+
+            return hit && hit.data ? hit.data : null;
+        }
+
+        /* One attempt on the current video frame. Resolves to text or null. */
+        function scanFrame() {
+            var vw = video.videoWidth, vh = video.videoHeight;
+
+            if (!vw || !vh) { return Promise.resolve(null); }
+
+            frameNo += 1;
+
+            var native = detector
+                ? detector.detect(video).then(function (codes) {
+                      return codes && codes.length ? codes[0].rawValue : null;
+                  }).catch(function () { return null; })
+                : Promise.resolve(null);
+
+            return native.then(function (text) {
+                if (text) { return text; }
+
+                /* alternate: whole frame (downscaled) / centre crop at full resolution
+                   (the crop helps when the QR is small or far away) */
+                var invert = frameNo % 4 === 0;
+
+                if (frameNo % 2 === 0) {
+                    return runJsQr(0, 0, vw, vh, MAX_SIDE, invert);
+                }
+
+                var cw = Math.round(vw * 0.62), ch = Math.round(vh * 0.62);
+
+                return runJsQr(Math.round((vw - cw) / 2), Math.round((vh - ch) / 2),
+                               cw, ch, 900, invert);
+            });
+        }
+
+        function loop(ts) {
+            if (!running) { return; }
+
+            if (!busy && ts - lastTick >= TICK_MS && video.readyState >= 2) {
+                lastTick = ts;
+                busy = true;
+
+                scanFrame().then(function (text) {
+                    busy = false;
+                    if (text && running) { finish(text); }
+                }).catch(function () { busy = false; });
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        /* ---------- camera ---------- */
+
+        function cameraError(err) {
+            var name = err && err.name;
+
+            if (name === "NotAllowedError" || name === "SecurityError") {
+                return " Camera permission was blocked. Click the camera icon in the address bar, allow it and try again. (It also needs https:// or localhost.)";
+            }
+
+            if (name === "NotFoundError" || name === "OverconstrainedError") {
+                return " No camera was found on this device. Use “Upload QR Image” or type the code.";
+            }
+
+            if (name === "NotReadableError") {
+                return " The camera is being used by another app or tab. Close it and try again.";
+            }
+
+            return " Camera could not start. Use “Upload QR Image” or type the code.";
+        }
+
+        function openStream() {
+            return navigator.mediaDevices.getUserMedia({
+                audio: false,
+                video: {
+                    facingMode: { ideal: "environment" },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    frameRate: { ideal: 30 }
+                }
+            }).catch(function (err) {
+                if (err && err.name === "OverconstrainedError") {
+                    return navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                }
+                throw err;
+            });
+        }
+
+        function setupCameraControls() {
+            var caps = {};
+
+            try { caps = track.getCapabilities ? track.getCapabilities() : {}; } catch (e) {}
+
+            /* keep refocusing automatically */
+            if (caps.focusMode && caps.focusMode.indexOf("continuous") !== -1) {
+                track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(function () {});
+            }
+
+            torchBtn.style.display = caps.torch ? "inline-block" : "none";
+
+            if (caps.zoom && caps.zoom.max > caps.zoom.min) {
+                zoomRange.min = caps.zoom.min;
+                zoomRange.max = Math.min(caps.zoom.max, caps.zoom.min * 4);
+                zoomRange.step = caps.zoom.step || 0.1;
+                zoomRange.value = caps.zoom.min;
+                zoomWrap.style.display = "inline-block";
+            } else {
+                zoomWrap.style.display = "none";
+            }
+
+            tools.style.display =
+                (caps.torch || (caps.zoom && caps.zoom.max > caps.zoom.min)) ? "flex" : "none";
+        }
+
+        function startCamera() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                say(" This page cannot use the camera (it needs https:// or localhost). Use “Upload QR Image” or type the code.");
+                return;
+            }
+
+            scanBox.classList.remove("success");
+            scanBox.style.display = "block";
+            startBtn.style.display = "none";
+            stopBtn.style.display = "inline-block";
+            say("Starting camera…");
+
+            pickDetector().then(function (d) {
+                detector = d;
+
+                if (!detector && typeof jsQR === "undefined") {
+                    throw { name: "NoDecoder" };
+                }
+
+                return openStream();
+            }).then(function (s) {
+                stream = s;
+                track = stream.getVideoTracks()[0];
+                video.srcObject = stream;
+
+                return video.play();
+            }).then(function () {
+                setupCameraControls();
+
+                running = true;
+                busy = false;
+                frameNo = 0;
+                say("Point your camera at the QR code…");
+                requestAnimationFrame(loop);
+
+                hintTimer = setTimeout(function () {
+                    if (running) {
+                        say("Trouble scanning? Move a little closer or further, keep the QR flat, avoid glare on the screen/pack, or switch on the torch.");
+                    }
+                }, 8000);
+            }).catch(function (err) {
+                stopCamera(false);
+
+                say(err && err.name === "NoDecoder"
+                    ? " The scanner library could not load (no internet?). Use “Upload QR Image” or type the code."
+                    : cameraError(err));
+            });
+        }
+
+        function stopCamera(keepMessage) {
+            running = false;
+            clearTimeout(hintTimer);
+
+            if (stream) {
+                stream.getTracks().forEach(function (t) { t.stop(); });
+            }
+
+            stream = null;
+            track = null;
+            torchOn = false;
+            video.srcObject = null;
+
+            startBtn.style.display = "inline-block";
+            stopBtn.style.display = "none";
+            tools.style.display = "none";
+
+            if (!keepMessage) { scanBox.style.display = "none"; }
+        }
+
+        startBtn.addEventListener("click", startCamera);
+
+        stopBtn.addEventListener("click", function () {
+            stopCamera(false);
+            msg.style.display = "none";
+        });
+
+        torchBtn.addEventListener("click", function () {
+            if (!track) { return; }
+
+            torchOn = !torchOn;
+            track.applyConstraints({ advanced: [{ torch: torchOn }] }).catch(function () {
+                torchOn = false;
+            });
+        });
+
+        zoomRange.addEventListener("input", function () {
+            if (track) {
+                track.applyConstraints({ advanced: [{ zoom: parseFloat(zoomRange.value) }] }).catch(function () {});
+            }
+        });
+
+        /* ---------- upload an image ---------- */
+
+        function decodeBitmap(bitmap) {
+            var longest = Math.max(bitmap.width, bitmap.height);
+            var sizes = [1600, 1000, 600].filter(function (n) { return n <= longest; });
+
+            if (!sizes.length) { sizes = [longest]; }
+
+            var chain = Promise.resolve(null);
+
+            sizes.forEach(function (side) {
+                chain = chain.then(function (found) {
+                    if (found) { return found; }
+
+                    var scale = side / longest;
+                    var w = Math.max(1, Math.round(bitmap.width * scale));
+                    var h = Math.max(1, Math.round(bitmap.height * scale));
+
+                    canvas.width = w;
+                    canvas.height = h;
+                    ctx.drawImage(bitmap, 0, 0, w, h);
+
+                    var viaJs = function () {
+                        if (typeof jsQR === "undefined") { return null; }
+                        var hit = jsQR(ctx.getImageData(0, 0, w, h).data, w, h,
+                                       { inversionAttempts: "attemptBoth" });
+                        return hit && hit.data ? hit.data : null;
+                    };
+
+                    if (!detector) { return viaJs(); }
+
+                    return detector.detect(canvas).then(function (codes) {
+                        return codes && codes.length ? codes[0].rawValue : viaJs();
+                    }).catch(viaJs);
+                });
+            });
+
+            return chain;
+        }
+
+        fileInput.addEventListener("change", function () {
+            var file = fileInput.files && fileInput.files[0];
+
+            if (!file) { return; }
+
+            say("Reading QR image…");
+
+            pickDetector().then(function (d) {
+                detector = d;
+
+                if (!detector && typeof jsQR === "undefined") {
+                    throw new Error("no decoder");
+                }
+
+                return createImageBitmap(file);
+            }).then(function (bitmap) {
+                return decodeBitmap(bitmap);
+            }).then(function (text) {
+                if (text) { finish(text); }
+                else { say("❌ No QR code found in that image. Try a clearer, closer photo."); }
+            }).catch(function () {
+                say("❌ Could not read that image (or the scanner library did not load). Type the code instead.");
+            }).then(function () {
+                fileInput.value = "";
+            });
+        });
+
+        window.addEventListener("pagehide", function () { stopCamera(false); });
+
+    })();
+    </script>
+
+
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}
+    My Profile
+{% endblock %}
+
+{% block content %}
+
+<div class="welcome">
+    <b> My Health Profile</b>
+    <br>
+    <span>Save your drug allergies so the safety check can warn you.</span>
+</div>
+
+{% if message %}
+<div class="alert {% if success %}success{% else %}error{% endif %}">
+    {% if success %}{% else %}{% endif %} {{ message }}
+</div>
+{% endif %}
+
+<div class="card">
+    <h2> Drug Allergies</h2>
+
+    <p>
+        Separate with commas. You can enter a medicine (for example
+        <i>Paracetamol</i>) or a class (<i>Penicillin</i>, <i>Sulfa</i>,
+        <i>NSAIDs</i>, <i>Cephalosporin</i>, <i>Macrolide</i>,
+        <i>Fluoroquinolone</i>).
+    </p>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <label>
+            Allergies
+            <input
+                type="text"
+                name="allergies"
+                value="{{ allergies }}"
+                placeholder="Example: Penicillin, Sulfa, Aspirin"
+                maxlength="600"
+            >
+        </label>
+
+        <button type="submit"> Save</button>
+    </form>
+</div>
+
+<div class="card">
+    <a class="button" href="{% url 'medication_safety' %}"> Run Safety Check</a>
+    <a class="button" href="{% url 'dashboard' %}">← Back to Dashboard</a>
+</div>
+
+{% endblock %}

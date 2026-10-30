@@ -1,0 +1,319 @@
+{% load static %}
+
+<!doctype html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover"
+    >
+
+    <meta
+        name="theme-color"
+        content="#0f766e"
+    >
+
+    <title>
+        {% block page_title %}
+            PharmaShield
+        {% endblock %}
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{% static 'css/style.css' %}"
+    >
+    <link rel="icon" type="image/x-icon" href="/static/favicon/favicon.ico?v=4">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png?v=4">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png?v=4">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png?v=4">
+    <link rel="manifest" href="/static/favicon/site.webmanifest?v=4">
+    <meta name="theme-color" content="#0f766e">
+
+</head>
+
+<body>
+
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <div class="app">
+
+        <!-- =========================
+             MOBILE TOP BAR + MENU OVERLAY (shown below 900px)
+        ========================== -->
+
+        <div class="topbar">
+            <button
+                type="button"
+                id="menuBtn"
+                class="menu-btn"
+                aria-label="Open menu"
+                aria-expanded="false"
+                aria-controls="sidebar"
+            >☰</button>
+
+            <span class="topbar-brand">🛡️ PharmaShield</span>
+        </div>
+
+        <div class="nav-overlay" id="navOverlay"></div>
+
+
+        <!-- =========================
+             SIDEBAR
+        ========================== -->
+
+        <aside id="sidebar">
+
+            <button
+                type="button"
+                id="navClose"
+                class="nav-close"
+                aria-label="Close menu"
+            >✕</button>
+
+            <div class="brand">
+                🛡️ PharmaShield
+            </div>
+
+            <nav>
+
+                <a href="/dashboard/">
+                    Dashboard
+                </a>
+
+                <a href="/verify/">
+                    Verify
+                </a>
+
+                <a href="/my-medicines/">
+                    My Medicines
+                </a>
+
+                <a href="/medicine-search/">
+                    Search Medicines
+                </a>
+
+                <a href="/medication-safety/">
+                    Safety Check
+                </a>
+
+                <a href="/profile/">
+                    My Profile
+                </a>
+
+                <a href="/history/">
+                    History
+                </a>
+
+                {% if user.role == 'admin' %}
+
+                    <a href="/admin-dashboard/">
+                        Admin Dashboard
+                    </a>
+
+                    <a href="/admin-qr/">
+                        QR Generator
+                    </a>
+
+                    <a href="/medicine-db/">
+                        Medicine DB
+                    </a>
+
+                {% endif %}
+
+                <a href="/report/">
+                    Report
+                </a>
+
+            </nav>
+
+            <a
+                class="logout"
+                href="/logout/"
+            >
+                Logout
+            </a>
+
+        </aside>
+
+
+        <!-- =========================
+             MAIN CONTENT
+        ========================== -->
+
+        <main id="main">
+
+            <header>
+
+                <div>
+
+                    <h1>
+                        {% block title %}
+                        {% endblock %}
+                    </h1>
+
+                    <p>
+                        Medicine safety & verification platform
+                    </p>
+
+                </div>
+
+
+                <!-- USER PROFILE -->
+
+                <div class="profile">
+
+                     {{ user.name }}
+
+                    <small>
+                        PharmaShield ID:
+                        {{ user.user_id }}
+                    </small>
+
+                </div>
+
+            </header>
+
+
+            <!-- =========================
+                 PAGE CONTENT
+            ========================== -->
+
+            {% block content %}
+
+            {% endblock %}
+
+        </main>
+
+    </div>
+
+
+    <!-- =========================================================
+         AUTO LOGOUT (idle timer)
+         Warns 60 seconds before logout and then logs the user out.
+         Activity also pings the server so the server-side session
+         does not expire while the user is still typing / reading.
+    ========================================================== -->
+
+    <div id="idleWarning" class="idle-warning" style="display: none;" role="alertdialog" aria-live="assertive">
+        <b> Still there?</b>
+        <span>
+            You will be logged out in
+            <b id="idleCountdown">60</b>s because of inactivity.
+        </span>
+        <button type="button" id="idleStay">Stay logged in</button>
+    </div>
+
+    <script>
+    (function () {
+
+        var IDLE_MS = {{ idle_timeout_seconds|default:900 }} * 1000;
+        var WARN_MS = Math.min(60000, Math.floor(IDLE_MS / 3));
+        var PING_EVERY = Math.floor(IDLE_MS / 3);
+
+        var lastActivity = Date.now();
+        var lastPing = Date.now();
+        var banner = document.getElementById("idleWarning");
+        var countdown = document.getElementById("idleCountdown");
+        var warning = false;
+
+        function logout(reason) {
+            window.location.href = "{% url 'logout' %}?reason=" + reason;
+        }
+
+        function ping() {
+            lastPing = Date.now();
+
+            fetch("{% url 'keepalive' %}", { credentials: "same-origin", cache: "no-store" })
+                .then(function (r) {
+                    // redirected to the login page => server session already ended
+                    if (r.redirected || !r.ok) { logout("timeout"); }
+                })
+                .catch(function () { /* offline: the timer still logs out */ });
+        }
+
+        function onActivity() {
+            if (warning) { return; }      // after the warning only the button counts
+
+            lastActivity = Date.now();
+
+            if (Date.now() - lastPing > PING_EVERY) { ping(); }
+        }
+
+        ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"].forEach(function (name) {
+            document.addEventListener(name, onActivity, { passive: true });
+        });
+
+        document.getElementById("idleStay").addEventListener("click", function () {
+            warning = false;
+            lastActivity = Date.now();
+            banner.style.display = "none";
+            ping();
+        });
+
+        setInterval(function () {
+            var idle = Date.now() - lastActivity;
+
+            if (idle >= IDLE_MS) {
+                logout("timeout");
+                return;
+            }
+
+            if (idle >= IDLE_MS - WARN_MS) {
+                warning = true;
+                banner.style.display = "flex";
+                countdown.textContent = Math.max(0, Math.ceil((IDLE_MS - idle) / 1000));
+            }
+        }, 1000);
+
+        // Page restored from the back/forward cache: re-check with the server
+        window.addEventListener("pageshow", function (e) {
+            if (e.persisted) { ping(); }
+        });
+
+    })();
+    </script>
+
+
+    <script>
+    (function () {
+        var body = document.body;
+        var btn = document.getElementById("menuBtn");
+        var overlay = document.getElementById("navOverlay");
+        var closeBtn = document.getElementById("navClose");
+        var nav = document.getElementById("sidebar");
+
+        function setOpen(open) {
+            body.classList.toggle("nav-open", open);
+            btn.setAttribute("aria-expanded", open ? "true" : "false");
+            btn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+            if (open) { closeBtn.focus(); } else { btn.focus({ preventScroll: true }); }
+        }
+
+        btn.addEventListener("click", function () { setOpen(!body.classList.contains("nav-open")); });
+        overlay.addEventListener("click", function () { setOpen(false); });
+        closeBtn.addEventListener("click", function () { setOpen(false); });
+
+        nav.addEventListener("click", function (e) {
+            if (e.target.closest("a")) { body.classList.remove("nav-open"); btn.setAttribute("aria-expanded", "false"); }
+        });
+
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape" && body.classList.contains("nav-open")) { setOpen(false); }
+        });
+
+        /* leaving the phone/tablet layout (rotate, resize): make sure the menu is not stuck open */
+        window.matchMedia("(min-width: 901px)").addEventListener("change", function (m) {
+            if (m.matches) { body.classList.remove("nav-open"); btn.setAttribute("aria-expanded", "false"); }
+        });
+    })();
+    </script>
+
+</body>
+
+</html>

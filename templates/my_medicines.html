@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+
+{% block title %}
+    My Medicines
+{% endblock %}
+
+{% block content %}
+
+<div class="welcome">
+    <b>
+         My Medicines
+    </b>
+
+    <br>
+
+    <span>
+        Manage your medicines and check for duplicate active
+        ingredients and medication interactions.
+    </span>
+</div>
+
+
+{% if message %}
+<div class="alert {% if success %}success{% else %}error{% endif %}">
+    {% if success %}{% else %}{% endif %}
+    {{ message }}
+</div>
+{% endif %}
+
+
+<!-- =========================
+     SAFETY SUMMARY
+========================== -->
+
+<div class="grid">
+
+    <div class="stat">
+         Medicines
+        <b>{{ medicines|length }}</b>
+    </div>
+
+    <div class="stat">
+         Duplicate Ingredients
+        <b>{{ duplicate_count }}</b>
+    </div>
+
+    <div class="stat">
+         Interactions
+        <b>{{ interaction_count }}</b>
+    </div>
+
+    <div class="stat">
+         Dose / Allergy Alerts
+        <b>{{ issue_count }}</b>
+    </div>
+
+</div>
+
+
+<!-- =========================
+     ADD MEDICINE
+========================== -->
+
+<div class="card">
+
+    <h2>Add Medicine</h2>
+
+    <p>
+        Add a medicine from the PharmaShield database or enter
+        its name manually.
+    </p>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <input type="hidden" name="action" value="add">
+
+        <label>
+            Medicine / Brand Name
+            <input
+                type="text"
+                name="medicine_name"
+                placeholder="Example: Augmentin 625 Duo Tablet"
+            >
+        </label>
+
+        <label>
+            Product ID
+            <input
+                type="text"
+                name="product_id"
+                placeholder="Optional — use Product ID from database"
+            >
+        </label>
+
+        <label>
+            Dose
+            <input
+                type="text"
+                name="dose"
+                placeholder="Example: 1 tablet, 2 tablets, 500 mg"
+            >
+        </label>
+
+        <label>
+            Frequency
+            <input
+                type="text"
+                name="frequency"
+                placeholder="Example: Twice a day, TDS, 1-0-1, every 8 hours"
+            >
+        </label>
+
+        <label>
+            Duration
+            <input
+                type="text"
+                name="duration"
+                placeholder="Example: 5 days"
+            >
+        </label>
+
+        <button type="submit">
+             Add Medicine
+        </button>
+    </form>
+
+</div>
+
+
+<!-- =========================
+     MEDICINE LIST
+========================== -->
+
+<div class="card">
+
+    <h2> My Medicine List</h2>
+
+    {% if medicines %}
+
+        {% for medicine in medicines %}
+
+        <div class="medicine-item">
+
+            <h3>
+                
+                {{ medicine.medicine_name|default:medicine.brand_name|default:"Unknown Medicine" }}
+            </h3>
+
+            {% if medicine.product_id %}
+            <p>
+                <b>Product ID:</b> {{ medicine.product_id }}
+            </p>
+            {% endif %}
+
+            {% if medicine.primary_ingredient %}
+            <p>
+                <b>Primary Ingredient:</b>
+                {{ medicine.primary_ingredient }}
+            </p>
+            {% endif %}
+
+            {% if medicine.primary_strength %}
+            <p>
+                <b>Strength:</b> {{ medicine.primary_strength }}
+            </p>
+            {% endif %}
+
+            {% if medicine.dose %}
+            <p>
+                <b>Dose:</b> {{ medicine.dose }}
+            </p>
+            {% endif %}
+
+            {% if medicine.frequency %}
+            <p>
+                <b>Frequency:</b> {{ medicine.frequency }}
+            </p>
+            {% endif %}
+
+            {% if medicine.duration %}
+            <p>
+                <b>Duration:</b> {{ medicine.duration }}
+            </p>
+            {% endif %}
+
+            {% if medicine.active_ingredients %}
+            <p>
+                <b>Active Ingredients:</b>
+                {{ medicine.active_ingredients|join:", " }}
+            </p>
+            {% endif %}
+
+            {% if medicine.product_id %}
+            <a class="button" href="{% url 'alternatives' medicine.product_id %}">
+                 Cheaper alternatives
+            </a>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+
+                <input type="hidden" name="action" value="remove">
+                <input type="hidden" name="medicine_id" value="{{ medicine.id }}">
+
+                <button type="submit">
+                     Remove
+                </button>
+            </form>
+
+        </div>
+
+        {% endfor %}
+
+    {% else %}
+
+        <p>
+             No medicines added yet.
+        </p>
+
+        <p>
+            Add your medicines above to start checking for duplicate
+            ingredients and interactions.
+        </p>
+
+    {% endif %}
+
+</div>
+
+
+<!-- =========================
+     DUPLICATE INGREDIENTS
+========================== -->
+
+<div class="card">
+
+    <h2> Duplicate Active Ingredients</h2>
+
+    {% if duplicates %}
+
+        <div class="alert error">
+             Potential duplicate active ingredients detected.
+        </div>
+
+        {% for duplicate in duplicates %}
+        <div class="medicine-item">
+            <h3>
+                 {{ duplicate.ingredient }}
+            </h3>
+
+            <p>
+                This ingredient appears in:
+            </p>
+
+            <ul>
+                {% for medicine in duplicate.medicines %}
+                <li>{{ medicine }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endfor %}
+
+    {% else %}
+
+        <p>
+             No duplicate active ingredients detected in your
+            current medicine list.
+        </p>
+
+    {% endif %}
+
+</div>
+
+
+<!-- =========================
+     DRUG INTERACTIONS
+========================== -->
+
+<div class="card">
+
+    <h2> Medication Interactions</h2>
+
+    {% if interactions %}
+
+        <div class="alert error">
+             Potential medication interactions detected.
+        </div>
+
+        {% for interaction in interactions %}
+        <div class="medicine-item">
+
+            <h3>
+                
+                {{ interaction.drug_a }}
+                ↔
+                {{ interaction.drug_b }}
+            </h3>
+
+            {% if interaction.severity %}
+            <p>
+                <b>Severity:</b> {{ interaction.severity }}
+            </p>
+            {% endif %}
+
+            {% if interaction.description %}
+            <p>
+                <b>Details:</b> {{ interaction.description }}
+            </p>
+            {% endif %}
+
+        </div>
+        {% endfor %}
+
+    {% else %}
+
+        <p>
+             No known medication interactions detected in the
+            current medicine list.
+        </p>
+
+    {% endif %}
+
+</div>
+
+
+<div class="card">
+    <a class="button" href="{% url 'medicine_search' %}">
+         Search Medicine Database
+    </a>
+
+    <a class="button" href="{% url 'medication_safety' %}">
+         Full Safety Check
+    </a>
+
+    <a class="button" href="{% url 'dashboard' %}">
+         Back to Dashboard
+    </a>
+</div>
+
+{% endblock %}

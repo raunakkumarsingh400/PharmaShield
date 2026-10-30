@@ -1,0 +1,26 @@
+# Render "Blueprint": New + > Blueprint > pick your GitHub repo.
+# Everything (users, medicines, reports, login sessions) lives in MongoDB Atlas,
+# so the free instance can sleep / restart without losing data or logging users out.
+services:
+  - type: web
+    name: pharmashield
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    startCommand: gunicorn pharmashield.wsgi
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.5
+      - key: DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: PHARMASHIELD_DB
+        value: pharmashield
+      - key: PHARMASHIELD_MONGO_URI   # paste your Atlas string in the Render dashboard
+        sync: false
+      - key: BREVO_API_KEY            # for password-reset emails (free plan blocks SMTP)
+        sync: false
+      - key: EMAIL_FROM_ADDRESS       # sender verified in Brevo
+        sync: false
