@@ -1,0 +1,194 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <meta
+        name="theme-color"
+        content="#0f766e"
+    >
+
+    <title>
+        PharmaShield Forgot ID
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="/static/css/style.css"
+    >
+
+    <link rel="icon" type="image/x-icon" href="/static/favicon/favicon.ico?v=4">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png?v=4">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png?v=4">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png?v=4">
+    <link rel="manifest" href="/static/favicon/site.webmanifest?v=4">
+    <meta name="theme-color" content="#0f766e">
+
+</head>
+
+
+<body class="auth">
+
+
+    <div class="auth-card">
+
+
+        <div class="logo">
+            🛡️ PharmaShield
+        </div>
+
+
+        <p class="muted">
+            Medicine verification and safety platform
+        </p>
+
+
+        {% if step == "email" %}
+
+        <h2>
+            Forgot your PharmaShield ID? 
+        </h2>
+
+        <p class="muted">
+            Enter the email you registered with. We will email you a 6-digit code (OTP).
+        </p>
+
+        <form method="post">
+
+            {% csrf_token %}
+
+            <label>
+
+                Registered Email
+
+                <input
+                    name="email"
+                    type="email"
+                    placeholder="Enter your registered email"
+                    autocomplete="email"
+                    required
+                    autofocus
+                >
+
+            </label>
+
+            <button type="submit">
+                 Send OTP
+            </button>
+
+        </form>
+
+
+        {% elif step == "otp" %}
+
+        <h2>
+            Enter the OTP 
+        </h2>
+
+        <p class="muted">
+            If <b style="overflow-wrap: anywhere;">{{ masked_email }}</b> is registered, we have sent a 6-digit code to it.
+            It is valid for 10 minutes. Please also check your spam folder.
+        </p>
+
+        {% if message %}
+        <div class="alert error">
+            {{ message }}
+        </div>
+        {% endif %}
+
+        {% if dev_otp %}
+        <div class="alert error">
+             <b>Developer mode:</b> email is not set up on this computer, so no email was sent.
+            Your OTP is:
+            <br><br>
+            <b style="font-size: 22px; letter-spacing: 4px;">{{ dev_otp }}</b>
+            <br><br>
+            <small>This box appears only while DEBUG is on and no email provider is configured.
+            Run <code>python setup_env.py</code> to send real emails.</small>
+        </div>
+        {% endif %}
+
+        <form method="post">
+
+            {% csrf_token %}
+
+            <label>
+
+                6-digit OTP
+
+                <input
+                    name="otp"
+                    inputmode="numeric"
+                    pattern="[0-9]{6}"
+                    maxlength="6"
+                    placeholder="______"
+                    autocomplete="one-time-code"
+                    required
+                    autofocus
+                    style="letter-spacing: 6px; font-size: 20px; text-align: center;"
+                >
+
+            </label>
+
+            <button type="submit">
+                 Verify OTP
+            </button>
+
+        </form>
+
+        <p class="center">
+            Did not get it?
+            <a href="{% url 'forgot_id' %}">Send a new code</a>
+        </p>
+
+
+        {% else %}
+
+        <h2>
+            Your PharmaShield ID 
+        </h2>
+
+        <div class="alert success">
+            Verified{% if found_name %}, {{ found_name }}{% endif %}! Your PharmaShield ID is:
+            <div style="font-size: 30px; font-weight: 800; letter-spacing: 2px; margin: 12px 0; word-break: break-all;">
+                {{ found_id }}
+            </div>
+            We have also emailed it to you.
+        </div>
+
+        <a class="button" href="/" style="display: block; text-align: center;">
+            Go to Login
+        </a>
+
+        {% endif %}
+
+
+        <p class="center">
+
+            <a href="/">
+                Login
+            </a>
+
+            &nbsp;|&nbsp;
+
+            <a href="{% url 'forgot_password' %}">
+                Forgot password?
+            </a>
+
+        </p>
+
+
+    </div>
+
+
+</body>
+
+</html>

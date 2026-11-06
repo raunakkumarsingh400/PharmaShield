@@ -30,6 +30,8 @@ DB_NAME = os.getenv("PHARMASHIELD_DB", "pharmashield")
 MAX_FAILED_LOGINS = 5
 LOCK_MINUTES = 15
 RESET_TOKEN_MINUTES = 30
+OTP_MINUTES = 10
+OTP_MAX_ATTEMPTS = 5
 REPORT_FLAG_THRESHOLD = 3
 RECONNECT_SECONDS = 10
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -218,6 +220,10 @@ class Database:
         d.password_resets.create_index("token_hash", unique=True)
         d.password_resets.create_index("expires_at", expireAfterSeconds=0)
         d.sessions.create_index("expire_at", expireAfterSeconds=0)
+        d.recovery_requests.create_index("created_at", expireAfterSeconds=3600)
+        d.recovery_requests.create_index("email")
+        d.id_otps.create_index("email", unique=True)
+        d.id_otps.create_index("expires_at", expireAfterSeconds=0)
 
     # =====================================================
     # USERS
@@ -335,6 +341,78 @@ class Database:
         self.db.users.update_one({"_id": user["_id"]}, {"$set": update})
 
         return None, generic
+
+    # -----------------------------------------------------
+    # Id Find (single-use, expiring otp)
+    # -----------------------------------------------------
+
+    def find_user_by_email(self, email):
+        if not self.online or not email:
+            return None
+
+        return self.db.users.find_one({"email": email.strip().lower()})
+
+    def recovery_allowed(self, email, limit=3):
+        """At most `limit` ID emails per address per hour (stops email bombing)."""
+        if not self.online:
+            return False
+
+        email = email.strip().lower()
+        since = now() - timedelta(hours=1)
+
+        if self.db.recovery_requests.count_documents(
+            {"email": email, "created_at": {"$gte": since}}
+        ) >= limit:
+            return False
+
+        self.db.recovery_requests.insert_one({"email": email, "created_at": now()})
+
+        return True
+
+    def create_id_otp(self, email):
+        """Make a 6-digit one-time code for `email`. Only its salted hash is stored."""
+        email = email.strip().lower()
+        otp = f"{secrets.randbelow(1_000_000):06d}"
+        salt = secrets.token_hex(8)
+
+        self.db.id_otps.replace_one(
+            {"email": email},
+            {
+                "email": email,
+                "salt": salt,
+                "otp_hash": sha256(salt + otp),
+                "attempts": 0,
+                "expires_at": now() + timedelta(minutes=OTP_MINUTES),
+            },
+            upsert=True,
+        )
+
+        return otp
+
+    def verify_id_otp(self, email, otp):
+        """True once if the code is right, not expired and attempts are left."""
+        if not self.online:
+            return False
+
+        email = email.strip().lower()
+        doc = self.db.id_otps.find_one({"email": email})
+
+        if not doc or aware(doc["expires_at"]) <= now():
+            return False
+
+        if doc.get("attempts", 0) >= OTP_MAX_ATTEMPTS:
+            self.db.id_otps.delete_one({"_id": doc["_id"]})
+            return False
+
+        digits = "".join(ch for ch in str(otp) if ch.isdigit())
+
+        if hmac.compare_digest(sha256(doc["salt"] + digits), doc["otp_hash"]):
+            self.db.id_otps.delete_one({"_id": doc["_id"]})   # one use only
+            return True
+
+        self.db.id_otps.update_one({"_id": doc["_id"]}, {"$inc": {"attempts": 1}})
+
+        return False
 
     # -----------------------------------------------------
     # password reset (single-use, expiring token)

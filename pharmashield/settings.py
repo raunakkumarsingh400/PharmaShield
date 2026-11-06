@@ -168,3 +168,4 @@ STORAGES = {
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+os.environ['EMAIL_FROM_ADDRESS'] = 'Pharmashield11@gmail.com'

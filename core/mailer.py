@@ -66,6 +66,34 @@ def provider():
 
     return "console"
 
+def build_otp_email(name, otp, minutes=10):
+    """Subject and body of the "your verification code" email."""
+    subject = "Your PharmaShield verification code"
+    body = (
+        f"Hello {name or 'there'},\n\n"
+        "Use this code to recover your PharmaShield ID:\n\n"
+        f"    {otp}\n\n"
+        f"The code is valid for {minutes} minutes and can be used once.\n"
+        "Do not share it with anyone.\n\n"
+        "If you did not ask for this, you can ignore this email."
+    )
+
+    return subject, body
+
+
+def build_id_email(name, user_id):
+    """Subject and body of the "here is your PharmaShield ID" email."""
+    subject = "Your PharmaShield ID"
+    body = (
+        f"Hello {name or 'there'},\n\n"
+        "You asked to recover your PharmaShield ID. It is:\n\n"
+        f"    {user_id}\n\n"
+        "Use it on the login page together with your password.\n"
+        "If you forgot your password too, use \"Forgot Password\" on the login page.\n\n"
+        "If you did not ask for this, you can ignore this email."
+    )
+
+    return subject, body
 
 def describe_config():
     """One readable line saying why email is (not) configured."""
@@ -103,7 +131,7 @@ def send_email(to_email, subject, body):
 
     try:
         if kind == "brevo":
-            sender = os.getenv("EMAIL_FROM_ADDRESS", "").strip()
+            sender = os.getenv("EMAIL_FROM_ADDRESS", "Pharmashield11@gmail.com").strip()
 
             if not sender:
                 raise RuntimeError(

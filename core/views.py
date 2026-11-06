@@ -8,7 +8,8 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 
 from .db import db
-from .mailer import provider, send_email
+from .adminstats import mask_email
+from .mailer import build_id_email, build_otp_email, provider, send_email
 from .pdfreport import build_safety_pdf
 from .qrcode_svg import MAX_BYTES, make_svg
 
@@ -166,6 +167,73 @@ def forgot_password(request):
         {"message": message, "sent": sent, "dev_link": dev_link},
     )
 
+def forgot_id(request):
+    """Step 1: registered email -> a 6-digit OTP is emailed."""
+    if request.method == "POST":
+        email = request.POST.get("email", "").strip().lower()
+        user = db.find_user_by_email(email) if email else None
+        dev_otp = ""
+
+        if user and db.recovery_allowed(email):
+            otp = db.create_id_otp(email)
+            subject, body = build_otp_email(user.get("name", ""), otp)
+
+            if not send_email(user["email"], subject, body):
+                logger.error("OTP email could not be sent to %s", user["email"])
+
+            # Local development only (DEBUG on, no email provider): show the OTP.
+            if settings.DEBUG and provider() == "console":
+                dev_otp = otp
+
+        if email:
+            # Same next screen whether or not the email is registered.
+            request.session["id_recovery_email"] = email
+            request.session["id_dev_otp"] = dev_otp
+
+            return redirect("forgot_id_verify")
+
+    return render(request, "forgot_id.html", {"step": "email"})
+
+
+def forgot_id_verify(request):
+    """Step 2: enter the OTP. Step 3: the ID is shown here and emailed."""
+    email = request.session.get("id_recovery_email", "")
+
+    if not email:
+        return redirect("forgot_id")
+
+    message = ""
+
+    if request.method == "POST":
+        user = db.find_user_by_email(email)
+
+        if user and db.verify_id_otp(email, request.POST.get("otp", "")):
+            subject, body = build_id_email(user.get("name", ""), user.get("user_id", ""))
+
+            if not send_email(user["email"], subject, body):
+                logger.error("PharmaShield ID email could not be sent to %s", user["email"])
+
+            request.session.pop("id_recovery_email", None)
+            request.session.pop("id_dev_otp", None)
+
+            return render(
+                request,
+                "forgot_id.html",
+                {"step": "done", "found_id": user.get("user_id", ""), "found_name": user.get("name", "")},
+            )
+
+        message = "That code is wrong or has expired. Check the code, or request a new one."
+
+    return render(
+        request,
+        "forgot_id.html",
+        {
+            "step": "otp",
+            "message": message,
+            "masked_email": mask_email(email),
+            "dev_otp": request.session.get("id_dev_otp", ""),
+        },
+    )
 
 def reset_password(request, token):
     if not db.reset_token_valid(token):

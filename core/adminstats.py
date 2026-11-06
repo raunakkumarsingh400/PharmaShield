@@ -86,3 +86,15 @@ def with_string_id(doc):
         doc["id"] = str(doc["_id"])
 
     return doc
+
+def mask_email(email):
+    """raunak.singh@gmail.com -> r***h@gmail.com (shown on the OTP screen)."""
+    name, _, domain = str(email).partition("@")
+
+    if not domain:
+        return "***"
+
+    if len(name) <= 2:
+        return f"{name[:1]}***@{domain}"
+
+    return f"{name[0]}***{name[-1]}@{domain}"
